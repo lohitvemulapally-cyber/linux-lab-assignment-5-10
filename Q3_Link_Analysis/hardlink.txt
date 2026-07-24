@@ -1,2 +1,0 @@
-This is the original file for link analysis.
-Extra line added via original.
