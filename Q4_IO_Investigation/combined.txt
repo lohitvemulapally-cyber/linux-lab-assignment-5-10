@@ -1,0 +1,2 @@
+ls: cannot access 'nonexistentfile123': No such file or directory
+output.txt

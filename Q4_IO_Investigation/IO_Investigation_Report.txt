@@ -1,0 +1,48 @@
+=== Question 4: File Access and I/O Investigation ===
+
+1. Open Files Identified
+Command: lsof -p $$
+Output (key entries):
+COMMAND  PID  USER  FD   TYPE DEVICE   SIZE/OFF   NODE NAME
+bash     334  lohit cwd  DIR  8,48     4096       44949 /home/lohit/lab-assignment/Q4_IO_Investigation
+bash     334  lohit 0u   CHR  136,0    0t0        3     /dev/pts/0
+bash     334  lohit 1u   CHR  136,0    0t0        3     /dev/pts/0
+bash     334  lohit 2u   CHR  136,0    0t0        3     /dev/pts/0
+bash     334  lohit 255u CHR  136,0    0t0        3     /dev/pts/0
+Observation: lsof -p $$ lists every file, library, and device the current shell process has open, including its current working directory, loaded shared libraries, and the three standard streams (fd 0, 1, 2) all connected to the terminal device /dev/pts/0.
+
+2. File Descriptor Observations
+Command: ls -l /proc/$$/fd
+Output:
+lrwx------ 1 lohit lohit 64 Jul  3 08:31 0 -> /dev/pts/0
+lrwx------ 1 lohit lohit 64 Jul  3 08:31 1 -> /dev/pts/0
+lrwx------ 1 lohit lohit 64 Jul  3 08:31 2 -> /dev/pts/0
+lrwx------ 1 lohit lohit 64 Jul  3 08:31 255 -> /dev/pts/0
+Observation: The /proc/$$/fd directory exposes the live file descriptor table of the current process as symbolic links. fd 0 (stdin), fd 1 (stdout), and fd 2 (stderr) all point to the same terminal device, confirming these are the standard I/O channels; fd 255 is used internally by bash.
+
+3. Output Redirection and Error Redirection Results
+Command: echo "This is standard output" > output.txt; cat output.txt
+Output: This is standard output
+Observation: The > operator redirected stdout (fd 1) away from the terminal into output.txt instead of printing on screen.
+
+Command: ls nonexistentfile123 2> error.txt; cat error.txt
+Output: ls: cannot access 'nonexistentfile123': No such file or directory
+Observation: The 2> operator redirected only stderr (fd 2) into error.txt, so the error message did not appear on the terminal but was captured in the file - the command produced no visible output on screen because there was no stdout to display.
+
+Command: ls output.txt nonexistentfile123 > combined.txt 2>&1; cat combined.txt
+Output:
+ls: cannot access 'nonexistentfile123': No such file or directory
+output.txt
+Observation: The 2>&1 syntax redirects stderr to wherever stdout currently points (the file combined.txt), merging both streams into a single file so both the successful listing and the error message appear together.
+
+4. Resource Limits Observed
+Command: ulimit -a
+Key Output:
+core file size: 0
+open files (-n): 10240
+max user processes (-u): 30403
+stack size (-s): 8192 KB
+Observation: ulimit -a shows the resource limits imposed on processes started by this shell. A max of 10240 open file descriptors are allowed per process, and core dumps are disabled by default (core file size 0), which prevents large memory-dump files from being written on program crashes.
+
+5. Explanation of How Linux Manages File I/O
+Linux represents every open file, device, pipe, or socket as a file descriptor - a small integer that a process uses to reference that resource, starting with 0 (stdin), 1 (stdout), and 2 (stderr) which are automatically opened for every process. The kernel maintains a per-process file descriptor table (visible via /proc/PID/fd) that maps these integers to actual open file descriptions in the kernel, which in turn point to inodes on disk or other resources like terminals and pipes. Redirection operators (>, <, 2>, 2>&1) work by manipulating which underlying resource a given file descriptor points to, without the program itself needing to know its output is going to a file instead of the terminal. Resource limits (ulimit) exist to prevent a single process or user from exhausting system resources by opening too many files, using excessive memory, or spawning unlimited processes.

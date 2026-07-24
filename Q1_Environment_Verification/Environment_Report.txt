@@ -1,0 +1,37 @@
+=== Question 1: Linux Environment Verification ===
+
+1. Username and Groups
+Command: whoami; groups; id
+Output:
+lohit
+lohit adm cdrom sudo dip plugdev users
+uid=1000(lohit) gid=1000(lohit) groups=1000(lohit),4(adm),24(cdrom),27(sudo),30(dip),46(plugdev),100(users)
+Observation: whoami confirms I am logged in as user "lohit". groups and id show I belong to several groups including sudo, which grants administrative privileges, and adm, used for system log access.
+
+2. Current Shell
+Command: echo $SHELL; ps -p $$
+Output:
+/bin/bash
+PID TTY TIME CMD
+336 pts/0 00:00:00 bash
+Observation: $SHELL confirms my default login shell is bash, and ps -p $$ verifies the currently running shell process (PID 336) is indeed bash.
+
+3. Current Working Directory
+Command: pwd
+Output: /home/lohit/lab-assignment/Q1_Environment_Verification
+Observation: pwd confirms I am working inside my dedicated lab workspace folder under my home directory.
+
+4. Files and Directories
+Command: ls -la
+Output:
+total 8
+drwxr-xr-x 2 lohit lohit 4096 Jul  3 06:13 .
+drwxr-xr-x 3 lohit lohit 4096 Jul  3 06:13 ..
+Observation: The -la flags show all entries including hidden ones. The folder is currently empty except for the default . and .. directory references, since no files have been created yet.
+
+5. Network Connectivity
+Command: ping -c 4 google.com
+Output:
+4 packets transmitted, 4 received, 0% packet loss, time 3005ms
+rtt min/avg/max/mdev = 27.911/91.772/198.592/70.434 ms
+Observation: All 4 packets were successfully received with 0% packet loss, confirming the system has working internet and DNS connectivity.

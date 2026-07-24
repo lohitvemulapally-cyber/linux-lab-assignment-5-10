@@ -1,0 +1,39 @@
+=== Question 5: Storage Health Assessment and Documentation ===
+
+1. Available Storage Devices
+Command: lsblk
+Output:
+NAME MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda    8:0    0 356.9M  1 disk
+sdb    8:16   0 159.4M  1 disk
+sdc    8:32   0    26G  0 disk [SWAP]
+sdd    8:48   0    1T   0 disk /mnt/wslg/distro
+                                /
+Observation: The WSL2 virtual machine exposes several virtual block devices - sda and sdb are small system images, sdc is a 26G swap partition used for memory overflow, and sdd is the main 1TB virtual disk hosting the Linux root filesystem.
+
+2. Mounted File Systems
+Command: df -hT
+Output (key entries):
+/dev/sdd   ext4     1007G  1.4G  955G   1% /
+drivers    9p       456G   127G  329G  28% /mnt/wsl/drivers, /mnt/c
+Observation: The Linux root filesystem (/) is ext4 formatted with 1007G total capacity and only 1% used. The Windows C: drive is mounted into WSL via the 9p protocol at /mnt/c, showing 28% usage, since it holds the full Windows installation and files, not just the Linux system.
+
+3. Disk Usage Statistics
+Command: df -h; du -sh ~/lab-assignment
+Output:
+/dev/sdd   1007G  1.4G  955G   1% /
+72K    /home/lohit/lab-assignment
+Observation: The root filesystem has abundant free space (955G available, only 1% used). The lab-assignment folder created during this entire lab exercise (all 5 questions) totals only 72K, confirming the exercises are lightweight and storage is not a concern for this workload.
+
+4. Inode Utilization
+Command: df -i
+Output (key entries):
+/dev/sdd   67108864  44973  67063891   1% /
+drivers    999       -999001  1000000    - /mnt/c
+Observation: The root filesystem has over 67 million total inodes with only 44,973 used (1%), indicating plenty of capacity for creating new files even though disk space usage is already low. The drivers/C:\ mount shows an unusual negative IUsed value because NTFS (the underlying Windows filesystem) does not track inodes the same way ext4 does, so WSL reports a placeholder value rather than a real inode count for that mount.
+
+5. Storage Health Observations
+The Linux root filesystem is in excellent health: both disk space (1% used) and inode usage (1% used) are extremely low, meaning there is no immediate risk of running out of either storage capacity or the ability to create new files. The 26G swap partition provides a safety buffer for memory pressure situations. The Windows C: drive mounted at /mnt/c is more heavily used (28%) but this reflects the full Windows OS and user files, not WSL/Linux usage, and is outside the scope of the Linux environment's storage health.
+
+6. Recommendations for Improving Storage Utilization
+Although current usage is minimal, for a production application server deployment the following practices are recommended: (1) Set up monitoring/alerting on df -h and df -i so administrators are notified before either disk space or inodes approach critical thresholds (e.g., 80%), since a filesystem can fail even with free space if inodes are exhausted by too many small files. (2) Avoid storing application data or logs directly on the C:\ mount (/mnt/c) in WSL environments, since 9p-mounted Windows drives have slower I/O performance compared to the native ext4 filesystem. (3) Implement log rotation for application logs to prevent gradual disk space consumption over time. (4) Periodically review and clean up unused files/directories, and consider separate partitions or volumes for logs, application data, and the OS itself in a real production deployment to isolate the impact of any single component filling up.
